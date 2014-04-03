@@ -19,6 +19,7 @@ import com.skcraft.launcher.model.minecraft.VersionManifest;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.SwingHelper;
 import com.skcraft.launcher.util.HttpRequest;
+import com.skcraft.launcher.util.Platform;
 import com.skcraft.launcher.util.SharedLocale;
 import com.skcraft.launcher.util.SimpleLogFormatter;
 import lombok.Getter;
@@ -316,6 +317,28 @@ public final class Launcher {
     }
 
     /**
+     * Detect platform.
+     * 
+     * @return platform
+     */
+    public static Platform getPlatform() {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (osName.contains("win"))
+            return Platform.WINDOWS;
+        if (osName.contains("mac"))
+            return Platform.MAC_OS_X;
+        if (osName.contains("solaris") || osName.contains("sunos"))
+            return Platform.SOLARIS;
+        if (osName.contains("linux"))
+            return Platform.LINUX;
+        if (osName.contains("unix"))
+            return Platform.LINUX;
+        
+        return Platform.UNKNOWN;
+    }
+    
+    
+    /**
      * Bootstrap.
      *
      * @param args args
@@ -339,7 +362,30 @@ public final class Launcher {
         if (dir != null) {
             log.info("Using given base directory " + dir.getAbsolutePath());
         } else {
-            dir = new File(".");
+        	
+        	String appDir="mineyourmind";
+        	String homeDir = System.getProperty("user.home", ".");
+        	switch ( getPlatform() ) {
+        	case LINUX:
+        	case SOLARIS:
+                dir = new File(homeDir, "." + appDir + "/");
+                break;
+        	case WINDOWS:
+                String applicationData = System.getenv("APPDATA");
+                if (applicationData != null)
+                    dir = new File(applicationData, "." + appDir + "/");
+                else
+                    dir = new File(homeDir, "." + appDir + "/");
+                break;
+        	case MAC_OS_X:
+        		dir = new File(homeDir, "Library/Application Support/" + appDir);
+        		break;
+        	default:
+        		dir = new File(homeDir, appDir + "/");
+        	}        	
+        	
+        	
+            //dir = new File(".");
             log.info("Using current directory " + dir.getAbsolutePath());
         }
 
