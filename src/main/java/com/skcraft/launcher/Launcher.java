@@ -19,7 +19,6 @@ import com.skcraft.launcher.model.minecraft.VersionManifest;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.SwingHelper;
 import com.skcraft.launcher.util.HttpRequest;
-import com.skcraft.launcher.util.Platform;
 import com.skcraft.launcher.util.SharedLocale;
 import com.skcraft.launcher.util.SimpleLogFormatter;
 import lombok.Getter;
