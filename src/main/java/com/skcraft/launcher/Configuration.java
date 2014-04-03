@@ -23,10 +23,10 @@ public class Configuration {
 
     private boolean offlineEnabled = false;
     private String jvmPath;
-    private String jvmArgs;
+    private String jvmArgs = "-XX:+UseCMSCompactAtFullCollection -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+AggressiveOpts";
     private int minMemory = 1024;
-    private int maxMemory = 1024;
-    private int permGen = 128;
+    private int maxMemory = 2048;
+    private int permGen = 256;
     private int windowWidth = 854;
     private int widowHeight = 480;
     private boolean proxyEnabled = false;
