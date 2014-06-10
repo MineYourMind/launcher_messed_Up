@@ -10,6 +10,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.skcraft.concurrency.ObservableFuture;
+import com.skcraft.launcher.Configuration;
 import com.skcraft.launcher.Instance;
 import com.skcraft.launcher.InstanceList;
 import com.skcraft.launcher.Launcher;
@@ -75,7 +76,7 @@ public class LauncherFrame extends JFrame {
 
 	/**
 	 * Create a new frame.
-	 * 
+	 *
 	 * @param launcher
 	 *            the launcher
 	 */
@@ -126,10 +127,8 @@ public class LauncherFrame extends JFrame {
 
 		String javaBitVersion = System.getProperty("sun.arch.data.model");
 
-		log.log(Level.INFO, "SYSTEM INFORMATION");
-		log.log(Level.INFO, "U are using arch: " + arch);
-		log.log(Level.INFO, "U are using wow64Arch: " + wow64Arch);
-		log.log(Level.INFO, "U are using realArch: " + realArch);
+        Integer maxMem = launcher.getConfig().getMaxMemory();
+        Integer permGen = launcher.getConfig().getPermGen();
 
 		if (javaBitVersion.equals("32") && realArch.equals("64")) {
 			// Custom button text
@@ -139,9 +138,7 @@ public class LauncherFrame extends JFrame {
 					.showOptionDialog(
 							this,
 							"We detected that you are running Java 32bit on a 64 bit System.\nWe highly recommend to install/update Java 64bit for better performance.",
-							"WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no
-																										// custom
-																										// Icon
+							"WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
 							options, // the titles of buttons
 							options[0]); // default button title);
 
@@ -151,11 +148,30 @@ public class LauncherFrame extends JFrame {
 					openWebpage(url);
 				}
 			} catch (MalformedURLException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-
 		}
+        else if (realArch.equals("32") && (maxMem > 1024 || permGen > 128)) {
+            // Custom button text
+            Object[] options = { "Yes, show me how", "No, thanks" };
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running a 32 Bit System.\nIn order to use the launcher properly you need to change some settings.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/32bit");
+                    openWebpage(url);
+                }
+            } catch (MalformedURLException e1) {
+                e1.printStackTrace();
+            }
+        }
 
 		log.log(Level.INFO, "JAVA VERSION: " + System.getProperty("sun.arch.data.model"));
 
