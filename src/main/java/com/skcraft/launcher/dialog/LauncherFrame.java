@@ -121,9 +121,18 @@ public class LauncherFrame extends JFrame {
 		add(buttonsPanel, BorderLayout.SOUTH);
 		add(container, BorderLayout.CENTER);
 
-		String arch = System.getenv("PROCESSOR_ARCHITECTURE");
-		String wow64Arch = System.getenv("PROCESSOR_ARCHITEW6432");
-		String realArch = arch.endsWith("64") || wow64Arch != null && wow64Arch.endsWith("64") ? "64" : "32";
+        String realArch = System.getProperty("os.arch").endsWith("64")
+                ? "64" : "32";
+
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            String arch = System.getenv("PROCESSOR_ARCHITECTURE");
+            String wow64Arch = System.getenv("PROCESSOR_ARCHITEW6432");
+            realArch = arch.endsWith("64")
+                    || wow64Arch != null && wow64Arch.endsWith("64")
+                    ? "64" : "32";
+        }
+
+        log.log(Level.INFO, "OS VERSION: " + realArch + "Bit");
 
 		String javaBitVersion = System.getProperty("sun.arch.data.model");
 
@@ -173,7 +182,7 @@ public class LauncherFrame extends JFrame {
             }
         }
 
-		log.log(Level.INFO, "JAVA VERSION: " + System.getProperty("sun.arch.data.model"));
+		log.log(Level.INFO, "JAVA VERSION: " + System.getProperty("sun.arch.data.model") + "Bit");
 
 		instancesModel.addTableModelListener(new TableModelListener() {
 			@Override
