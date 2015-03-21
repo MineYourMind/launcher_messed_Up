@@ -29,6 +29,7 @@ public class Instance implements Comparable<Instance> {
     private boolean updatePending;
     private boolean installed;
     private Date lastAccessed;
+    private String icon;
     @JsonProperty("launch")
     private LaunchModifier launchModifier;
 
@@ -46,6 +47,15 @@ public class Instance implements Comparable<Instance> {
      */
     public String getTitle() {
         return title != null ? title : name;
+    }
+
+    /**
+     * Get the icon of the instance.
+     *
+     * @return a icon file name
+     */
+    public String getIcon() {
+        return icon;
     }
 
     /**

@@ -13,6 +13,7 @@ import com.skcraft.launcher.Launcher;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.io.File;
 
 import static com.skcraft.launcher.util.SharedLocale._;
 
@@ -26,11 +27,11 @@ public class InstanceTableModel extends AbstractTableModel {
     public InstanceTableModel(InstanceList instances) {
         this.instances = instances;
         instanceIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "instance_icon.png")
-                .getScaledInstance(16, 16, Image.SCALE_SMOOTH));
+                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
         customInstanceIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "custom_instance_icon.png")
-                .getScaledInstance(16, 16, Image.SCALE_SMOOTH));
+                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
         downloadIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "download_icon.png")
-                .getScaledInstance(14, 14, Image.SCALE_SMOOTH));
+                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
     }
 
     public void update() {
@@ -78,7 +79,7 @@ public class InstanceTableModel extends AbstractTableModel {
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         switch (columnIndex) {
             case 0:
-                return true;
+                return false;
             case 1:
                 return false;
             default:
@@ -105,13 +106,19 @@ public class InstanceTableModel extends AbstractTableModel {
                 if (!instance.isLocal()) {
                     return downloadIcon;
                 } else if (instance.getManifestURL() != null) {
+                    File icon = new File(instance.getContentDir(), "custom_instance_icon.png");
+                    if (icon.exists()) {
+                        ImageIcon instanceIconCustom = new ImageIcon(SwingHelper.readIconImage(icon)
+                                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
+                        return instanceIconCustom;
+                    }
                     return instanceIcon;
                 } else {
                     return customInstanceIcon;
                 }
             case 1:
                 instance = instances.get(rowIndex);
-                return "<html>" + SwingHelper.htmlEscape(instance.getTitle()) + getAddendum(instance) + "</html>";
+                return "<html>&nbsp;" + SwingHelper.htmlEscape(instance.getTitle()) + getAddendum(instance) + "</html>";
             default:
                 return null;
         }
@@ -119,11 +126,11 @@ public class InstanceTableModel extends AbstractTableModel {
 
     private String getAddendum(Instance instance) {
         if (!instance.isLocal()) {
-            return " <span style=\"color: #cccccc\">" + _("launcher.notInstalledHint") + "</span>";
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + _("launcher.notInstalledHint") + "</span>";
         } else if (!instance.isInstalled()) {
-            return " <span style=\"color: red\">" + _("launcher.requiresUpdateHint") + "</span>";
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + _("launcher.requiresUpdateHint") + "</span>";
         } else if (instance.isUpdatePending()) {
-            return " <span style=\"color: #3758DB\">" + _("launcher.updatePendingHint") + "</span>";
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + _("launcher.updatePendingHint") + "</span>";
         } else {
             return "";
         }

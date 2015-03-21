@@ -297,6 +297,20 @@ public final class SwingHelper {
         return null;
     }
 
+    public static BufferedImage readIconImage(File path) {
+        InputStream in = null;
+        try {
+            in = new FileInputStream(path);
+            if (in != null) {
+                return ImageIO.read(in);
+            }
+        } catch (IOException e) {
+        } finally {
+            closeQuietly(in);
+        }
+        return null;
+    }
+
     public static void setIconImage(JFrame frame, Class<?> clazz, String path) {
         BufferedImage image = readIconImage(clazz, path);
         if (image != null) {
