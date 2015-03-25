@@ -9,25 +9,29 @@ package com.skcraft.launcher;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.skcraft.launcher.auth.AccountList;
 import com.skcraft.launcher.auth.LoginService;
 import com.skcraft.launcher.auth.YggdrasilLoginService;
-import com.skcraft.launcher.dialog.LauncherFrame;
+import com.skcraft.launcher.launch.LaunchSupervisor;
 import com.skcraft.launcher.model.minecraft.VersionManifest;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.SwingHelper;
+import com.skcraft.launcher.update.UpdateManager;
 import com.skcraft.launcher.util.HttpRequest;
 import com.skcraft.launcher.util.Platform;
 import com.skcraft.launcher.util.SharedLocale;
 import com.skcraft.launcher.util.SimpleLogFormatter;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.java.Log;
 import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -49,12 +53,16 @@ public final class Launcher {
 
     @Getter
     private final ListeningExecutorService executor = MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
+    @Getter @Setter private Supplier<Window> mainWindowSupplier = new DefaultLauncherSupplier(this);
     @Getter private final File baseDir;
     @Getter private final Properties properties;
     @Getter private final InstanceList instances;
     @Getter private final Configuration config;
     @Getter private final AccountList accounts;
     @Getter private final AssetsRoot assets;
+    @Getter private final LaunchSupervisor launchSupervisor = new LaunchSupervisor(this);
+    @Getter private final UpdateManager updateManager = new UpdateManager(this);
+    @Getter private final InstanceTasks instanceTasks = new InstanceTasks(this);
 
     /**
      * Create a new launcher instance with the given base directory.
@@ -83,6 +91,8 @@ public final class Launcher {
                 cleanupExtractDir();
             }
         });
+
+        updateManager.checkForUpdate();
     }
 
     /**
@@ -317,8 +327,68 @@ public final class Launcher {
     }
 
     /**
+     * Show the launcher.
+     */
+    public void showLauncherWindow() {
+        mainWindowSupplier.get().setVisible(true);
+    }
+
+    /**
+     * Create a new launcher from arguments.
+     *
+     * @param args the arguments
+     * @return the launcher
+     * @throws ParameterException thrown on a bad parameter
+     * @throws IOException throw on an I/O error
+     */
+    public static Launcher createFromArguments(String[] args) throws ParameterException, IOException {
+        LauncherArguments options = new LauncherArguments();
+        new JCommander(options, args);
+
+        Integer bsVersion = options.getBootstrapVersion();
+        log.info(bsVersion != null ? "Bootstrap version " + bsVersion + " detected" : "Not bootstrapped");
+
+        File dir = options.getDir();
+        if (dir != null) {
+            log.info("Using given base directory " + dir.getAbsolutePath());
+        } else {
+            String appDir="mineyourmind";
+            String homeDir = System.getProperty("user.home", ".");
+            switch ( getPlatform() ) {
+                case LINUX:
+                case SOLARIS:
+                    dir = new File(homeDir, "." + appDir + "/");
+                    break;
+                case WINDOWS:
+                    String applicationData = System.getenv("APPDATA");
+                    if (applicationData != null)
+                        dir = new File(applicationData, "." + appDir + "/");
+                    else
+                        dir = new File(homeDir, "." + appDir + "/");
+                    break;
+                case MAC_OS_X:
+                    dir = new File(homeDir, "Library/Application Support/" + appDir);
+                    break;
+                default:
+                    dir = new File(homeDir, appDir + "/");
+            }
+            //dir = new File(".");
+            log.info("Using current directory " + dir.getAbsolutePath());
+        }
+
+        return new Launcher(dir);
+    }
+
+    /**
+     * Setup loggers and perform initialization.
+     */
+    public static void setupLogger() {
+        SimpleLogFormatter.configureGlobalLogger();
+    }
+
+    /**
      * Detect platform.
-     * 
+     *
      * @return platform
      */
     public static Platform getPlatform() {
@@ -333,72 +403,26 @@ public final class Launcher {
             return Platform.LINUX;
         if (osName.contains("unix"))
             return Platform.LINUX;
-        
+
         return Platform.UNKNOWN;
     }
-    
-    
+
     /**
      * Bootstrap.
      *
      * @param args args
      */
-    public static void main(String[] args) {
-        SimpleLogFormatter.configureGlobalLogger();
-
-        LauncherArguments options = new LauncherArguments();
-        try {
-            new JCommander(options, args);
-        } catch (ParameterException e) {
-            System.err.print(e.getMessage());
-            System.exit(1);
-            return;
-        }
-
-        Integer bsVersion = options.getBootstrapVersion();
-        log.info(bsVersion != null ? "Bootstrap version " + bsVersion + " detected" : "Not bootstrapped");
-
-        File dir = options.getDir();
-        if (dir != null) {
-            log.info("Using given base directory " + dir.getAbsolutePath());
-        } else {
-        	
-        	String appDir="mineyourmind";
-        	String homeDir = System.getProperty("user.home", ".");
-        	switch ( getPlatform() ) {
-        	case LINUX:
-        	case SOLARIS:
-                dir = new File(homeDir, "." + appDir + "/");
-                break;
-        	case WINDOWS:
-                String applicationData = System.getenv("APPDATA");
-                if (applicationData != null)
-                    dir = new File(applicationData, "." + appDir + "/");
-                else
-                    dir = new File(homeDir, "." + appDir + "/");
-                break;
-        	case MAC_OS_X:
-        		dir = new File(homeDir, "Library/Application Support/" + appDir);
-        		break;
-        	default:
-        		dir = new File(homeDir, appDir + "/");
-        	}        	
-        	
-        	
-            //dir = new File(".");
-            log.info("Using current directory " + dir.getAbsolutePath());
-        }
-
-        final File baseDir = dir;
+    public static void main(final String[] args) {
+        setupLogger();
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 try {
+                    Launcher launcher = createFromArguments(args);
                     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
                     UIManager.getDefaults().put("SplitPane.border", BorderFactory.createEmptyBorder());
-                    Launcher launcher = new Launcher(baseDir);
-                    new LauncherFrame(launcher).setVisible(true);
+                    launcher.showLauncherWindow();
                 } catch (Throwable t) {
                     log.log(Level.WARNING, "Load failure", t);
                     SwingHelper.showErrorDialog(null, "Uh oh! The updater couldn't be opened because a " +
