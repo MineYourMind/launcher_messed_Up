@@ -28,6 +28,8 @@ public class ConfigurationDialog extends JDialog {
 
     private final JPanel tabContainer = new JPanel(new BorderLayout());
     private final JTabbedPane tabbedPane = new JTabbedPane();
+    private final FormPanel generalSettingsPanel = new FormPanel();
+    private final JTextField installLocation = new JTextField();
     private final FormPanel javaSettingsPanel = new FormPanel();
     private final JTextField jvmPathText = new JTextField();
     private final JTextField jvmArgsText = new JTextField();
@@ -69,6 +71,7 @@ public class ConfigurationDialog extends JDialog {
         setResizable(false);
         setLocationRelativeTo(owner);
 
+        mapper.map(installLocation, "installLocation");
         mapper.map(jvmPathText, "jvmPath");
         mapper.map(jvmArgsText, "jvmArgs");
         mapper.map(minMemorySpinner, "minMemory");
@@ -87,6 +90,12 @@ public class ConfigurationDialog extends JDialog {
     }
 
     private void initComponents() {
+
+        generalSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.installLocationInfo")));
+        generalSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.installLocation")), installLocation);
+        SwingHelper.removeOpaqueness(generalSettingsPanel);
+        tabbedPane.addTab(SharedLocale.tr("options.generalTab"), SwingHelper.alignTabbedPane(generalSettingsPanel));
+
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.jvmPath")), jvmPathText);
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.jvmArguments")), jvmArgsText);
         javaSettingsPanel.addRow(Box.createVerticalStrut(15));

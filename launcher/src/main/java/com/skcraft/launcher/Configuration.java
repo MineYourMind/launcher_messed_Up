@@ -22,6 +22,7 @@ import lombok.Data;
 public class Configuration {
 
     private boolean offlineEnabled = false;
+    private String installLocation;
     private String jvmPath;
     private String jvmArgs = "-XX:+UseCMSCompactAtFullCollection -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+AggressiveOpts";
     private int minMemory = 1024;

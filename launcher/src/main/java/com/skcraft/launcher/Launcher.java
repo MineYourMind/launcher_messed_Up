@@ -73,13 +73,21 @@ public final class Launcher {
     public Launcher(@NonNull File baseDir) throws IOException {
         SharedLocale.loadBundle("com.skcraft.launcher.lang.Launcher", Locale.getDefault());
 
-        this.baseDir = baseDir;
+        this.config = Persistence.load(new File(baseDir, "config.json"), Configuration.class);
+        this.accounts = Persistence.load(new File(baseDir, "accounts.dat"), AccountList.class);
+
+        //Overwrite save location if defined by user
+        if (this.config.getInstallLocation() != null) {
+            this.baseDir = new File(config.getInstallLocation());
+            log.info("User defined instance location detected, overwriting current " + config.getInstallLocation());
+        } else {
+            this.baseDir = baseDir;
+        }
+
         this.properties = LauncherUtils.loadProperties(Launcher.class,
                 "launcher.properties", "com.skcraft.launcher.propertiesFile");
         this.instances = new InstanceList(this);
         this.assets = new AssetsRoot(new File(baseDir, "assets"));
-        this.config = Persistence.load(new File(baseDir, "config.json"), Configuration.class);
-        this.accounts = Persistence.load(new File(baseDir, "accounts.dat"), AccountList.class);
 
         if (accounts.getSize() > 0) {
             accounts.setSelectedItem(accounts.getElementAt(0));
