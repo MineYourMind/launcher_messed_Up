@@ -23,6 +23,7 @@ public class InstanceTableModel extends AbstractTableModel {
     private final ImageIcon customInstanceIcon;
     private final ImageIcon downloadIcon;
 
+    @SuppressWarnings("ConstantConditions")
     public InstanceTableModel(InstanceList instances) {
         this.instances = instances;
         instanceIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "instance_icon.png")
@@ -97,6 +98,7 @@ public class InstanceTableModel extends AbstractTableModel {
     }
 
     @Override
+    @SuppressWarnings({"ConstantConditions"})
     public Object getValueAt(int rowIndex, int columnIndex) {
         Instance instance;
         switch (columnIndex) {
@@ -107,9 +109,8 @@ public class InstanceTableModel extends AbstractTableModel {
                 } else if (instance.getManifestURL() != null) {
                     File icon = new File(instance.getContentDir(), "custom_instance_icon.png");
                     if (icon.exists()) {
-                        ImageIcon instanceIconCustom = new ImageIcon(SwingHelper.readIconImage(icon)
+                        return new ImageIcon(SwingHelper.readIconImage(icon)
                                 .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
-                        return instanceIconCustom;
                     }
                     return instanceIcon;
                 } else {
@@ -117,9 +118,21 @@ public class InstanceTableModel extends AbstractTableModel {
                 }
             case 1:
                 instance = instances.get(rowIndex);
-                return instance.getTitle();
+                return "<html>&nbsp;" + SwingHelper.htmlEscape(instance.getTitle()) + getAddendum(instance) + "</html>";
             default:
                 return null;
+        }
+    }
+
+    private String getAddendum(Instance instance) {
+        if (!instance.isLocal()) {
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.notInstalledHint") + "</span>";
+         } else if (!instance.isInstalled()) {
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.requiresUpdateHint") + "</span>";
+        } else if (instance.isUpdatePending()) {
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.updatePendingHint") + "</span>";
+        } else {
+            return "";
         }
     }
 
