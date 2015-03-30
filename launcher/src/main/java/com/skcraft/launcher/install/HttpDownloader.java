@@ -47,6 +47,7 @@ public class HttpDownloader implements Downloader {
     private final Set<String> usedKeys = new HashSet<String>();
 
     private final List<HttpDownloadJob> running = new ArrayList<HttpDownloadJob>();
+    private final List<HttpDownloadJob> retry = new ArrayList<HttpDownloadJob>();
     private final List<HttpDownloadJob> failed = new ArrayList<HttpDownloadJob>();
     private long downloaded = 0;
     private long total = 0;
@@ -134,9 +135,26 @@ public class HttpDownloader implements Downloader {
                 throw new IOException("Something went wrong", e);
             }
 
+            
+            // retry failed downloads once
+            synchronized (this) {
+                futures.clear();
+                if (retry.size() > 0) {
+                    for (HttpDownloadJob job : retry) {
+                        futures.add(executor.submit(job));
+                    }
+                }
+            }
+
+            try {
+                Futures.allAsList(futures).get();
+            } catch (ExecutionException e) {
+                throw new IOException("Something went wrong", e);
+            }
+
             synchronized (this) {
                 if (failed.size() > 0) {
-                    throw new IOException(failed.size() + " file(s) could not be downloaded");
+                    throw new IOException(failed.size() + " file(s) could not be downloaded. Please retry the failed downloads by relaunching the modpack and make sure that your internet connection is stable by disabling downloads, videos, streams.. In case it is still failing after a few trys please contact support at: mym.li/support");
                 }
             }
         } finally {
