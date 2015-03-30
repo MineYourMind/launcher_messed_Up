@@ -47,7 +47,6 @@ public class HttpDownloader implements Downloader {
     private final Set<String> usedKeys = new HashSet<String>();
 
     private final List<HttpDownloadJob> running = new ArrayList<HttpDownloadJob>();
-    private final List<HttpDownloadJob> retry = new ArrayList<HttpDownloadJob>();
     private final List<HttpDownloadJob> failed = new ArrayList<HttpDownloadJob>();
     private long downloaded = 0;
     private long total = 0;
@@ -135,9 +134,11 @@ public class HttpDownloader implements Downloader {
                 throw new IOException("Something went wrong", e);
             }
 
-            
+
             // retry failed downloads once
             synchronized (this) {
+                List<HttpDownloadJob> retry = new ArrayList<HttpDownloadJob>(failed);
+                failed.clear();
                 futures.clear();
                 if (retry.size() > 0) {
                     for (HttpDownloadJob job : retry) {
