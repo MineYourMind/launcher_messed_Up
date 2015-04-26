@@ -6,7 +6,7 @@
 
 package com.skcraft.launcher.swing;
 
-import com.skcraft.launcher.LauncherUtils;
+import com.skcraft.launcher.launch.IProcessOutputConsumer;
 import com.skcraft.launcher.util.LimitLinesDocumentListener;
 import com.skcraft.launcher.util.SimpleLogFormatter;
 
@@ -27,7 +27,7 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 /**
  * A simple message log.
  */
-public class MessageLog extends JPanel {
+public class MessageLog extends JPanel implements IProcessOutputConsumer {
 
     private static final Logger rootLogger = Logger.getLogger("");
     

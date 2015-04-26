@@ -8,9 +8,7 @@ package com.skcraft.launcher.launch;
 
 import com.google.common.base.Function;
 import com.skcraft.launcher.Launcher;
-import com.skcraft.launcher.dialog.LauncherFrame;
 import com.skcraft.launcher.dialog.ProcessConsoleFrame;
-import com.skcraft.launcher.swing.MessageLog;
 import lombok.NonNull;
 import lombok.extern.java.Log;
 
@@ -27,10 +25,12 @@ public class LaunchProcessHandler implements Function<Process, ProcessConsoleFra
     private static final int CONSOLE_NUM_LINES = 10000;
 
     private final Launcher launcher;
+    private final boolean showProcessConsole;
     private ProcessConsoleFrame consoleFrame;
 
-    public LaunchProcessHandler(@NonNull Launcher launcher) {
+    public LaunchProcessHandler(@NonNull Launcher launcher, boolean showProcessConsole) {
         this.launcher = launcher;
+        this.showProcessConsole = showProcessConsole;
     }
 
     @Override
@@ -41,10 +41,15 @@ public class LaunchProcessHandler implements Function<Process, ProcessConsoleFra
             SwingUtilities.invokeAndWait(new Runnable() {
                 @Override
                 public void run() {
-                    consoleFrame = new ProcessConsoleFrame(CONSOLE_NUM_LINES, true);
-                    consoleFrame.setProcess(process);
-                    consoleFrame.setVisible(true);
-                    MessageLog messageLog = consoleFrame.getMessageLog();
+                    IProcessOutputConsumer messageLog;
+                    if (showProcessConsole) {
+                        consoleFrame = new ProcessConsoleFrame(CONSOLE_NUM_LINES, true);
+                        consoleFrame.setProcess(process);
+                        consoleFrame.setVisible(true);
+                        messageLog = consoleFrame.getMessageLog();
+                    } else {
+                        messageLog = new ProcessOutputConsumerPassThrough();
+                    }
                     messageLog.consume(process.getInputStream());
                     messageLog.consume(process.getErrorStream());
                 }
