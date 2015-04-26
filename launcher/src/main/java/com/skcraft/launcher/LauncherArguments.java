@@ -26,4 +26,7 @@ public class LauncherArguments {
     @Parameter(names = "--portable")
     private boolean portable;
 
+    @Parameter(names = "--no-console", description = "Hides the concole for the started Minecraft process.")
+    private boolean noConsole;
+
 }

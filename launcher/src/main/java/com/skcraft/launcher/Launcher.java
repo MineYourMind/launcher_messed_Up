@@ -60,7 +60,7 @@ public final class Launcher {
     @Getter private final Configuration config;
     @Getter private final AccountList accounts;
     @Getter private final AssetsRoot assets;
-    @Getter private final LaunchSupervisor launchSupervisor = new LaunchSupervisor(this);
+    @Getter private final LaunchSupervisor launchSupervisor;
     @Getter private final UpdateManager updateManager = new UpdateManager(this);
     @Getter private final InstanceTasks instanceTasks = new InstanceTasks(this);
 
@@ -70,7 +70,7 @@ public final class Launcher {
      * @param baseDir the base directory
      * @throws java.io.IOException on load error
      */
-    public Launcher(@NonNull File baseDir) throws IOException {
+    public Launcher(@NonNull File baseDir, boolean showProcessConsole) throws IOException {
         SharedLocale.loadBundle("com.skcraft.launcher.lang.Launcher", Locale.getDefault());
 
         this.baseDir = baseDir;
@@ -78,6 +78,7 @@ public final class Launcher {
                 "launcher.properties", "com.skcraft.launcher.propertiesFile");
         this.instances = new InstanceList(this);
         this.assets = new AssetsRoot(new File(baseDir, "assets"));
+        this.launchSupervisor = new LaunchSupervisor(this, showProcessConsole);
         this.config = Persistence.load(new File(baseDir, "config.json"), Configuration.class);
         this.accounts = Persistence.load(new File(baseDir, "accounts.dat"), AccountList.class);
 
@@ -376,7 +377,7 @@ public final class Launcher {
             log.info("Using current directory " + dir.getAbsolutePath());
         }
 
-        return new Launcher(dir);
+        return new Launcher(dir, !options.isNoConsole());
     }
 
     /**

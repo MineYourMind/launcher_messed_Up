@@ -37,9 +37,11 @@ import static com.skcraft.launcher.util.SharedLocale.tr;
 public class LaunchSupervisor {
 
     private final Launcher launcher;
+    private final boolean showProcessConsole;
 
-    public LaunchSupervisor(Launcher launcher) {
+    public LaunchSupervisor(Launcher launcher, boolean showProcessConsole) {
         this.launcher = launcher;
+        this.showProcessConsole = showProcessConsole;
     }
 
     public void launch(final Window window, final Instance instance, boolean permitUpdate, final LaunchListener listener) {
@@ -136,7 +138,7 @@ public class LaunchSupervisor {
 
         // Watch the created process
         ListenableFuture<?> future = Futures.transform(
-                processFuture, new LaunchProcessHandler(launcher), launcher.getExecutor());
+                processFuture, new LaunchProcessHandler(launcher, showProcessConsole), launcher.getExecutor());
         SwingHelper.addErrorDialogCallback(null, future);
 
         // Clean up at the very end
