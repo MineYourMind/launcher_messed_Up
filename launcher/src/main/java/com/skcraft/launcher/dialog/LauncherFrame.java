@@ -194,8 +194,20 @@ public class LauncherFrame extends JFrame {
         JPopupMenu popup = new JPopupMenu();
         JMenuItem menuItem;
 
+        final ImageIcon installIcon;
+        final ImageIcon launchIcon;
+        final ImageIcon openFolderIcon;
+        final ImageIcon openResourcePacksIcon;
+        final ImageIcon openScreenshotsIcon;
+        final ImageIcon deleteFilesIcon;
+        final ImageIcon hardForceUpdateIcon;
+        final ImageIcon forceUpdateIcon;
+
         if (selected != null) {
-            menuItem = new JMenuItem(!selected.isLocal() ? "Install" : "Launch");
+            installIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "installIcon.png"));
+            launchIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "launchIcon.png"));
+
+            menuItem = new JMenuItem(!selected.isLocal() ? "Install" : "Launch", !selected.isLocal() ? installIcon : launchIcon);
             menuItem.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -207,26 +219,35 @@ public class LauncherFrame extends JFrame {
             if (selected.isLocal()) {
                 popup.addSeparator();
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.openFolder"));
+                openFolderIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "openFolderIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.openFolder"), openFolderIcon);
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, selected.getContentDir(), true));
                 popup.add(menuItem);
 
+                /**
                 menuItem = new JMenuItem(SharedLocale.tr("instance.openSaves"));
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, new File(selected.getContentDir(), "saves"), true));
                 popup.add(menuItem);
+                 **/
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.openResourcePacks"));
+                openResourcePacksIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "openResourcePacksIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.openResourcePacks"), openResourcePacksIcon);
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, new File(selected.getContentDir(), "resourcepacks"), true));
                 popup.add(menuItem);
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.openScreenshots"));
+                openScreenshotsIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "openScreenshotsIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.openScreenshots"), openScreenshotsIcon);
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, new File(selected.getContentDir(), "screenshots"), true));
                 popup.add(menuItem);
 
+                /**
                 menuItem = new JMenuItem(SharedLocale.tr("instance.copyAsPath"));
                 menuItem.addActionListener(new ActionListener() {
                     @Override
@@ -237,11 +258,14 @@ public class LauncherFrame extends JFrame {
                     }
                 });
                 popup.add(menuItem);
+                 **/
 
                 popup.addSeparator();
 
+                forceUpdateIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "forceUpdateIcon.png"));
+
                 if (!selected.isUpdatePending()) {
-                    menuItem = new JMenuItem(SharedLocale.tr("instance.forceUpdate"));
+                    menuItem = new JMenuItem(SharedLocale.tr("instance.forceUpdate"), forceUpdateIcon);
                     menuItem.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -253,7 +277,9 @@ public class LauncherFrame extends JFrame {
                     popup.add(menuItem);
                 }
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.hardForceUpdate"));
+                hardForceUpdateIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "hardForceUpdateIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.hardForceUpdate"), hardForceUpdateIcon);
                 menuItem.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -262,7 +288,9 @@ public class LauncherFrame extends JFrame {
                 });
                 popup.add(menuItem);
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.deleteFiles"));
+                deleteFilesIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "deleteFilesIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.deleteFiles"), deleteFilesIcon);
                 menuItem.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -272,9 +300,10 @@ public class LauncherFrame extends JFrame {
                 popup.add(menuItem);
             }
 
-            popup.addSeparator();
+            //popup.addSeparator();
         }
 
+        /**
         menuItem = new JMenuItem(SharedLocale.tr("launcher.refreshList"));
         menuItem.addActionListener(new ActionListener() {
             @Override
@@ -283,6 +312,7 @@ public class LauncherFrame extends JFrame {
             }
         });
         popup.add(menuItem);
+         **/
 
         popup.show(component, x, y);
 
