@@ -6,12 +6,15 @@
 
 package com.skcraft.launcher.dialog;
 
+import com.google.common.base.Strings;
 import com.skcraft.concurrency.ObservableFuture;
 import com.skcraft.launcher.Instance;
 import com.skcraft.launcher.InstanceList;
 import com.skcraft.launcher.Launcher;
 import com.skcraft.launcher.launch.LaunchListener;
 import com.skcraft.launcher.swing.*;
+import com.skcraft.launcher.util.Environment;
+import com.skcraft.launcher.util.Platform;
 import com.skcraft.launcher.util.SharedLocale;
 import com.skcraft.launcher.util.SwingExecutor;
 import lombok.Getter;
@@ -30,6 +33,11 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.logging.Level;
 
 import static com.skcraft.launcher.util.SharedLocale.tr;
 
@@ -167,6 +175,104 @@ public class LauncherFrame extends JFrame {
                 popupInstanceMenu(e.getComponent(), e.getX(), e.getY(), selected);
             }
         });
+
+        checkAndValidateJavaVersionAndSettings();
+
+    }
+
+    /*
+    * Compares the java runtime bit version with the operation's bit version and warns in case of mismatch about performance impact. Additionally warns about too high ram settings in relation with 32 bit.
+    * If the operation system is a mac further steps are being taken in order to dodge the systems default java version which is outdated (1.6).
+    */
+
+    protected void checkAndValidateJavaVersionAndSettings() {
+
+        boolean customJvmPath = false;
+
+        if (!Strings.isNullOrEmpty(launcher.getConfig().getJvmPath())) {
+            customJvmPath = true;
+        }
+
+        if (!customJvmPath && Environment.getInstance().getPlatform() == Platform.MAC_OS_X) {
+            File customJava = new File("/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java");
+            if (customJava.exists() && customJava.canExecute()) {
+                launcher.getConfig().setJvmPath("/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home");
+                customJvmPath = true;
+                log.log(Level.INFO, "Mac and custom java detected, setting corresponding jvm path.");
+            }
+        }
+
+        if (!customJvmPath && Environment.getJavaVersionMajor() < 1.7) {
+            // Custom button text
+            Object[] options = {"Yes, please", "No, thanks"};
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running an old version of Java which is no longer supported by all mod-packs.\nWe highly recommend to install Java 1.7 or 1.8.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/java");
+                    openWebpage(url);
+                    System.exit(0);
+                }
+            } catch (MalformedURLException e1) {
+                log.log(Level.SEVERE, "Malformed URL has occurred!", e1);
+            }
+        }
+
+        Integer maxMem = launcher.getConfig().getMaxMemory();
+        Integer permGen = launcher.getConfig().getPermGen();
+
+        if (Environment.getInstance().getJavaBits().equals("32") && Environment.getInstance().getArchBits().equals("64")) {
+            // Custom button text
+            Object[] options = { "Yes, please", "No, thanks" };
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running Java 32bit on a 64 bit System.\nWe highly recommend to install/update Java 64bit for better performance.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/java");
+                    openWebpage(url);
+                    System.exit(0);
+                }
+            } catch (MalformedURLException e1) {
+                log.log(Level.SEVERE, "Malformed URL has occurred!", e1);
+            }
+        }
+        else if (Environment.getInstance().getArchBits().equals("32") && (maxMem > 1244 || permGen > 128)) {
+            // Custom button text
+            Object[] options = { "Yes, show me how", "No, thanks" };
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running a 32 Bit System.\nIn order to use the launcher properly you need to change some settings.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/32bit");
+                    openWebpage(url);
+                }
+            } catch (MalformedURLException e1) {
+                log.log(Level.SEVERE, "Malformed URL has occurred!", e1);
+            }
+        }
+
+        log.log(Level.INFO, "JAVA VERSION: " + System.getProperty("sun.arch.data.model") + "Bit");
     }
 
     protected JPanel createContainerPanel() {
@@ -286,6 +392,26 @@ public class LauncherFrame extends JFrame {
 
         popup.show(component, x, y);
 
+    }
+
+
+    public void openWebpage(URI uri) {
+        Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+        if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+            try {
+                desktop.browse(uri);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void openWebpage(URL url) {
+        try {
+            openWebpage(url.toURI());
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
     }
 
     private void confirmDelete(Instance instance) {

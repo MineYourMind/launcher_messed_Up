@@ -17,6 +17,7 @@ public class Environment {
     private final Platform platform;
     private final String platformVersion;
     private final String arch;
+    private final String javaBits;
 
     /**
      * Get an instance of the current environment.
@@ -24,11 +25,28 @@ public class Environment {
      * @return the current environment
      */
     public static Environment getInstance() {
-        return new Environment(detectPlatform(), System.getProperty("os.version"), System.getProperty("os.arch"));
+        return new Environment(detectPlatform(), System.getProperty("os.version"), System.getProperty("os.arch"), System.getProperty("sun.arch.data.model"));
     }
 
     public String getArchBits() {
-        return arch.contains("64") ? "64" : "32";
+        String realArch = arch.contains("64") ? "64" : "32";
+
+        // Windows tends to lie about its arch, so further steps are required.
+        if (platform == Platform.WINDOWS) {
+            String arch = System.getenv("PROCESSOR_ARCHITECTURE");
+            String wow64Arch = System.getenv("PROCESSOR_ARCHITEW6432");
+            realArch = arch.endsWith("64")
+                    || wow64Arch != null && wow64Arch.endsWith("64")
+                    ? "64" : "32";
+        }
+        return realArch;
+    }
+
+    public static double getJavaVersionMajor() {
+        String version = Runtime.class.getPackage().getImplementationVersion();
+        int pos = version.indexOf('.');
+        pos = version.indexOf('.', pos+1);
+        return Double.parseDouble (version.substring (0, pos));
     }
 
     /**
