@@ -13,6 +13,7 @@ import java.awt.*;
 public class InstanceTable extends JTable {
 
     public InstanceTable() {
+        setFocusable(false);
         setShowGrid(false);
         setRowHeight(Math.max(getRowHeight() + 4, 40));
         setIntercellSpacing(new Dimension(0, 0));
