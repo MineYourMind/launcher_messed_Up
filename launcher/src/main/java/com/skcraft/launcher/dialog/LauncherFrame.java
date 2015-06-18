@@ -23,8 +23,12 @@ import lombok.extern.java.Log;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -54,6 +58,11 @@ public class LauncherFrame extends JFrame {
     private final InstanceTableModel instancesModel;
     @Getter
     private final JScrollPane instanceScroll = new JScrollPane(instancesTable);
+
+    private TableRowSorter<TableModel> instanceSorter;
+    private SearchBox searchBox = new SearchBox(SharedLocale.tr("launcher.search"));
+    private JSplitPane instanceSplitPane;
+
     private WebpagePanel webView;
     private JSplitPane splitPane;
     private final JButton launchButton = new JButton(SharedLocale.tr("launcher.launch"));
@@ -74,7 +83,7 @@ public class LauncherFrame extends JFrame {
         instancesModel = new InstanceTableModel(launcher.getInstances());
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setSize(700, 450);
+        setSize(760, 450);
         setMinimumSize(new Dimension(400, 300));
         initComponents();
         setLocationRelativeTo(null);
@@ -90,11 +99,13 @@ public class LauncherFrame extends JFrame {
     }
 
     private void initComponents() {
+
         JPanel container = createContainerPanel();
         container.setLayout(new MigLayout("fill, insets dialog", "[][]push[][]", "[grow][]"));
 
+        instanceSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, searchBox, instanceScroll);
         webView = createNewsPanel();
-        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, instanceScroll, webView);
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, instanceSplitPane, webView);
         selfUpdateButton.setVisible(launcher.getUpdateManager().getPendingUpdate());
 
         launcher.getUpdateManager().addPropertyChangeListener(new PropertyChangeListener() {
@@ -110,6 +121,12 @@ public class LauncherFrame extends JFrame {
         updateCheck.setSelected(true);
         instancesTable.setModel(instancesModel);
         launchButton.setFont(launchButton.getFont().deriveFont(Font.BOLD));
+
+        instanceSplitPane.setDividerLocation(24);
+        instanceSplitPane.setDividerSize(2);
+        instanceSplitPane.setOpaque(false);
+        SwingHelper.flattenJSplitPane(instanceSplitPane);
+
         splitPane.setDividerLocation(200);
         splitPane.setDividerSize(4);
         splitPane.setOpaque(false);
@@ -177,7 +194,42 @@ public class LauncherFrame extends JFrame {
         });
 
         checkAndValidateJavaVersionAndSettings();
+        tableSortFilter();
 
+    }
+
+    private void tableSortFilter() {
+        instanceSorter = new TableRowSorter<TableModel>(instancesTable.getModel());
+        instancesTable.setRowSorter(instanceSorter);
+
+        searchBox.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                String text = searchBox.getText();
+
+                if (text.trim().length() == 0 || text.equals(SharedLocale.tr("launcher.search"))) {
+                    instanceSorter.setRowFilter(null);
+                } else {
+                    instanceSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                String text = searchBox.getText();
+
+                if (text.trim().length() == 0 || text.equals(SharedLocale.tr("launcher.search"))) {
+                    instanceSorter.setRowFilter(null);
+                } else {
+                    instanceSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                throw new UnsupportedOperationException("Not supported.");
+            }
+        });
     }
 
     /*
@@ -508,5 +560,4 @@ public class LauncherFrame extends JFrame {
             launcher.showLauncherWindow();
         }
     }
-
 }
