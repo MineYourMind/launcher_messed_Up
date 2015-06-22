@@ -555,7 +555,7 @@ public class LauncherFrame extends JFrame {
 
     private void launch() {
         boolean permitUpdate = updateCheck.isSelected();
-        Instance instance = launcher.getInstances().get(instancesTable.getSelectedRow());
+        Instance instance = launcher.getInstances().get(instancesTable.convertRowIndexToModel(instancesTable.getSelectedRow()));
 
         launcher.getLaunchSupervisor().launch(this, instance, permitUpdate, new LaunchListenerImpl(this));
     }
