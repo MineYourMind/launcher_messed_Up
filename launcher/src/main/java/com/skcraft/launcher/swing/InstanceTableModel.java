@@ -117,7 +117,7 @@ public class InstanceTableModel extends AbstractTableModel {
             case 1:
                 instance = instances.get(rowIndex);
                 return "<html>&nbsp;" + SwingHelper.htmlEscape(instance.getTitle()) +
-                        "<br /><span style=\"color: #969896\">" + instance.getAuthor() + "</span>" + "</html>";
+                        "<br />&nbsp;<span style=\"color: #969896\">" + instance.getAuthor() + "</span>" + "</html>";
             default:
                 return null;
         }
