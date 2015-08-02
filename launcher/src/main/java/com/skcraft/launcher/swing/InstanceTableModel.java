@@ -116,8 +116,20 @@ public class InstanceTableModel extends AbstractTableModel {
                 }
             case 1:
                 instance = instances.get(rowIndex);
-                return "<html>&nbsp;" + SwingHelper.htmlEscape(instance.getTitle()) +
-                        "<br />&nbsp;<span style=\"color: #969896\">" + instance.getAuthor() + "</span>" + "</html>";
+                boolean updateAvailable = false;
+                if (!instance.isInstalled() || instance.isUpdatePending())
+                    updateAvailable = true;
+                StringBuilder text = new StringBuilder();
+                text.append("<html>&nbsp;");
+                if (updateAvailable)
+                    text.append("<b style='color: white;'>");
+                text.append(SwingHelper.htmlEscape(instance.getTitle()));
+                if (updateAvailable)
+                    text.append("</b>");
+                text.append("<br />&nbsp;<span style=\"color: #969896\">")
+                        .append(instance.getAuthor())
+                        .append("</span></html>");
+                return text.toString();
             default:
                 return null;
         }
@@ -126,7 +138,7 @@ public class InstanceTableModel extends AbstractTableModel {
     private String getAddendum(Instance instance) {
         if (!instance.isLocal()) {
             return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.notInstalledHint") + "</span>";
-         } else if (!instance.isInstalled()) {
+        } else if (!instance.isInstalled()) {
             return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.requiresUpdateHint") + "</span>";
         } else if (instance.isUpdatePending()) {
             return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.updatePendingHint") + "</span>";
