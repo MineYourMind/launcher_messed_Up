@@ -27,6 +27,7 @@ public class Instance implements Comparable<Instance> {
 
     private String title;
     private String name;
+    private String author;
     private String version;
     private boolean updatePending;
     private boolean installed;

@@ -82,6 +82,12 @@ public class Manifest extends BaseManifest {
         }
     }
 
+    public void updateAuthor(String author) {
+        if (author != null) {
+            setTitle(author);
+        }
+    }
+
     public void updateGameVersion(String gameVersion) {
         if (gameVersion != null) {
             setGameVersion(gameVersion);
