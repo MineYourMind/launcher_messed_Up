@@ -85,7 +85,7 @@ public class FeatureSelectionDialog extends JDialog {
     }
 
     private void updateDescription() {
-        Feature feature = features.get(componentsTable.getSelectedRow());
+        Feature feature = features.get(componentsTable.convertRowIndexToModel(componentsTable.getSelectedRow()));
 
         if (feature != null) {
             descText.setText(feature.getDescription());

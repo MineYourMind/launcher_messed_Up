@@ -152,6 +152,7 @@ public class InstanceList {
                             foundLocal = true;
 
                             instance.setTitle(manifest.getTitle());
+                            instance.setAuthor(manifest.getAuthor());
                             instance.setPriority(manifest.getPriority());
                             URL url = concat(packagesURL, manifest.getLocation());
                             instance.setManifestURL(url);
@@ -174,6 +175,7 @@ public class InstanceList {
                         Instance instance = Persistence.load(file, Instance.class);
                         instance.setDir(dir);
                         instance.setTitle(manifest.getTitle());
+                        instance.setAuthor(manifest.getAuthor());
                         instance.setName(manifest.getName());
                         instance.setVersion(manifest.getVersion());
                         instance.setPriority(manifest.getPriority());
