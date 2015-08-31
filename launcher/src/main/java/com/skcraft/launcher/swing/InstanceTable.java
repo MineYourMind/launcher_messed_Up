@@ -13,8 +13,9 @@ import java.awt.*;
 public class InstanceTable extends JTable {
 
     public InstanceTable() {
+        setFocusable(false);
         setShowGrid(false);
-        setRowHeight(Math.max(getRowHeight() + 4, 20));
+        setRowHeight(Math.max(getRowHeight() + 4, 40));
         setIntercellSpacing(new Dimension(0, 0));
         setFillsViewportHeight(true);
         setTableHeader(null);
@@ -25,7 +26,7 @@ public class InstanceTable extends JTable {
     public void setModel(TableModel dataModel) {
         super.setModel(dataModel);
         try {
-            getColumnModel().getColumn(0).setMaxWidth(24);
+            getColumnModel().getColumn(0).setMaxWidth(42);
         } catch (ArrayIndexOutOfBoundsException e) {
         }
     }

@@ -13,6 +13,7 @@ public class BaseManifest {
 
     private String title;
     private String name;
+    private String author;
     private String version;
 
 }

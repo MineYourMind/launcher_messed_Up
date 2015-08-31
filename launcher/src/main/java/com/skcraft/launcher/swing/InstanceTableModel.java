@@ -14,6 +14,7 @@ import com.skcraft.launcher.util.SharedLocale;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.io.File;
 
 public class InstanceTableModel extends AbstractTableModel {
 
@@ -22,14 +23,15 @@ public class InstanceTableModel extends AbstractTableModel {
     private final ImageIcon customInstanceIcon;
     private final ImageIcon downloadIcon;
 
+    @SuppressWarnings("ConstantConditions")
     public InstanceTableModel(InstanceList instances) {
         this.instances = instances;
         instanceIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "instance_icon.png")
-                .getScaledInstance(16, 16, Image.SCALE_SMOOTH));
+                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
         customInstanceIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "custom_instance_icon.png")
-                .getScaledInstance(16, 16, Image.SCALE_SMOOTH));
+                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
         downloadIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "download_icon.png")
-                .getScaledInstance(14, 14, Image.SCALE_SMOOTH));
+                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
     }
 
     public void update() {
@@ -77,7 +79,7 @@ public class InstanceTableModel extends AbstractTableModel {
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         switch (columnIndex) {
             case 0:
-                return true;
+                return false;
             case 1:
                 return false;
             default:
@@ -96,6 +98,7 @@ public class InstanceTableModel extends AbstractTableModel {
     }
 
     @Override
+    @SuppressWarnings({"ConstantConditions"})
     public Object getValueAt(int rowIndex, int columnIndex) {
         Instance instance;
         switch (columnIndex) {
@@ -103,16 +106,44 @@ public class InstanceTableModel extends AbstractTableModel {
                 instance = instances.get(rowIndex);
                 if (!instance.isLocal()) {
                     return downloadIcon;
-                } else if (instance.getManifestURL() != null) {
-                    return instanceIcon;
                 } else {
-                    return customInstanceIcon;
+                    File icon = new File(instance.getContentDir(), "custom_instance_icon.png");
+                    if (icon.exists()) {
+                        return new ImageIcon(SwingHelper.readIconImage(icon)
+                                .getScaledInstance(32, 32, Image.SCALE_SMOOTH));
+                    }
+                    return instanceIcon;
                 }
             case 1:
                 instance = instances.get(rowIndex);
-                return instance.getTitle();
+                boolean updateAvailable = false;
+                if (!instance.isInstalled() || instance.isUpdatePending())
+                    updateAvailable = true;
+                StringBuilder text = new StringBuilder();
+                text.append("<html>&nbsp;");
+                if (updateAvailable)
+                    text.append("<b style='color: white;'>");
+                text.append(SwingHelper.htmlEscape(instance.getTitle()));
+                if (updateAvailable)
+                    text.append("</b>");
+                text.append("<br />&nbsp;<span style=\"color: #969896\">")
+                        .append(instance.getAuthor())
+                        .append("</span></html>");
+                return text.toString();
             default:
                 return null;
+        }
+    }
+
+    private String getAddendum(Instance instance) {
+        if (!instance.isLocal()) {
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.notInstalledHint") + "</span>";
+        } else if (!instance.isInstalled()) {
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.requiresUpdateHint") + "</span>";
+        } else if (instance.isUpdatePending()) {
+            return "<br /> &nbsp;&nbsp;&nbsp;<span style=\"color: #969896\">" + SharedLocale.tr("launcher.updatePendingHint") + "</span>";
+        } else {
+            return "";
         }
     }
 

@@ -6,7 +6,7 @@ Graphite Enabled {
     colorMid=#3F3F3F
     colorDark=#353535
     colorUltraDark=#313131
-    colorForeground=#B4B4B4
+    colorForeground=#f2f2f2
 }
 
 Graphite Border {
@@ -94,12 +94,12 @@ Graphite Highlight {
     colorMid=#373737
     colorDark=#373737
     colorUltraDark=#373737
-    colorForeground=#CCCCCC
+    colorForeground=#f2f2f2
 }
 
 Graphite Tab Highlight {
     kind=Light
-    colorUltraLight=#FBFCFF
+    colorUltraLight=#181818
     colorExtraLight=#F2F6FB
     colorLight=#CED7E0
     colorMid=#BCC0C5
@@ -116,7 +116,7 @@ Graphite Highlight Mark {
     colorMid=#414141
     colorDark=#323232
     colorUltraDark=#2B2B2B
-    colorForeground=#2B2B2B
+    colorForeground=#f2f2f2
 }
 
 Graphite Text Highlight {

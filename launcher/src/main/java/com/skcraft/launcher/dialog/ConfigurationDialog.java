@@ -25,9 +25,12 @@ public class ConfigurationDialog extends JDialog {
 
     private final Configuration config;
     private final ObjectSwingMapper mapper;
+    private final Launcher launcher;
 
     private final JPanel tabContainer = new JPanel(new BorderLayout());
     private final JTabbedPane tabbedPane = new JTabbedPane();
+    private final FormPanel generalSettingsPanel = new FormPanel();
+    private final JTextField installLocation = new JTextField();
     private final FormPanel javaSettingsPanel = new FormPanel();
     private final JTextField jvmPathText = new JTextField();
     private final JTextField jvmArgsText = new JTextField();
@@ -49,6 +52,7 @@ public class ConfigurationDialog extends JDialog {
     private final JButton okButton = new JButton(SharedLocale.tr("button.ok"));
     private final JButton cancelButton = new JButton(SharedLocale.tr("button.cancel"));
     private final JButton logButton = new JButton(SharedLocale.tr("options.launcherConsole"));
+    private final LinkButton bitButton = new LinkButton(SharedLocale.tr("options.64BitJavaWarning"));
 
     /**
      * Create a new configuration dialog.
@@ -59,6 +63,7 @@ public class ConfigurationDialog extends JDialog {
     public ConfigurationDialog(Window owner, @NonNull Launcher launcher) {
         super(owner, ModalityType.DOCUMENT_MODAL);
 
+        this.launcher = launcher;
         this.config = launcher.getConfig();
         mapper = new ObjectSwingMapper(config);
 
@@ -69,6 +74,7 @@ public class ConfigurationDialog extends JDialog {
         setResizable(false);
         setLocationRelativeTo(owner);
 
+        mapper.map(installLocation, "installLocation");
         mapper.map(jvmPathText, "jvmPath");
         mapper.map(jvmArgsText, "jvmArgs");
         mapper.map(minMemorySpinner, "minMemory");
@@ -87,10 +93,20 @@ public class ConfigurationDialog extends JDialog {
     }
 
     private void initComponents() {
+
+        generalSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.installLocationInfo")));
+        generalSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.installLocation")), installLocation);
+        SwingHelper.removeOpaqueness(generalSettingsPanel);
+        tabbedPane.addTab(SharedLocale.tr("options.generalTab"), SwingHelper.alignTabbedPane(generalSettingsPanel));
+
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.jvmPath")), jvmPathText);
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.jvmArguments")), jvmArgsText);
         javaSettingsPanel.addRow(Box.createVerticalStrut(15));
-        javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.64BitJavaWarning")));
+        javaSettingsPanel.addRow(bitButton);
+
+        bitButton.addActionListener(
+                ActionListeners.openURL(bitButton, launcher.getProperties().getProperty("64BitJavaURL")));
+
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.minMemory")), minMemorySpinner);
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.maxMemory")), maxMemorySpinner);
         javaSettingsPanel.addRow(new JLabel(SharedLocale.tr("options.permGen")), permGenSpinner);

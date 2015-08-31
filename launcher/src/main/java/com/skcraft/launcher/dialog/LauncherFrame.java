@@ -6,12 +6,15 @@
 
 package com.skcraft.launcher.dialog;
 
+import com.google.common.base.Strings;
 import com.skcraft.concurrency.ObservableFuture;
 import com.skcraft.launcher.Instance;
 import com.skcraft.launcher.InstanceList;
 import com.skcraft.launcher.Launcher;
 import com.skcraft.launcher.launch.LaunchListener;
 import com.skcraft.launcher.swing.*;
+import com.skcraft.launcher.util.Environment;
+import com.skcraft.launcher.util.Platform;
 import com.skcraft.launcher.util.SharedLocale;
 import com.skcraft.launcher.util.SwingExecutor;
 import lombok.Getter;
@@ -20,8 +23,12 @@ import lombok.extern.java.Log;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -30,6 +37,11 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.logging.Level;
 
 import static com.skcraft.launcher.util.SharedLocale.tr;
 
@@ -46,6 +58,11 @@ public class LauncherFrame extends JFrame {
     private final InstanceTableModel instancesModel;
     @Getter
     private final JScrollPane instanceScroll = new JScrollPane(instancesTable);
+
+    private TableRowSorter<TableModel> instanceSorter;
+    private SearchBox searchBox = new SearchBox(SharedLocale.tr("launcher.search"));
+    private JSplitPane instanceSplitPane;
+
     private WebpagePanel webView;
     private JSplitPane splitPane;
     private final JButton launchButton = new JButton(SharedLocale.tr("launcher.launch"));
@@ -66,7 +83,7 @@ public class LauncherFrame extends JFrame {
         instancesModel = new InstanceTableModel(launcher.getInstances());
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setSize(700, 450);
+        setSize(760, 450);
         setMinimumSize(new Dimension(400, 300));
         initComponents();
         setLocationRelativeTo(null);
@@ -82,11 +99,13 @@ public class LauncherFrame extends JFrame {
     }
 
     private void initComponents() {
+
         JPanel container = createContainerPanel();
         container.setLayout(new MigLayout("fill, insets dialog", "[][]push[][]", "[grow][]"));
 
+        instanceSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, searchBox, instanceScroll);
         webView = createNewsPanel();
-        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, instanceScroll, webView);
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, instanceSplitPane, webView);
         selfUpdateButton.setVisible(launcher.getUpdateManager().getPendingUpdate());
 
         launcher.getUpdateManager().addPropertyChangeListener(new PropertyChangeListener() {
@@ -102,6 +121,12 @@ public class LauncherFrame extends JFrame {
         updateCheck.setSelected(true);
         instancesTable.setModel(instancesModel);
         launchButton.setFont(launchButton.getFont().deriveFont(Font.BOLD));
+
+        instanceSplitPane.setDividerLocation(24);
+        instanceSplitPane.setDividerSize(2);
+        instanceSplitPane.setOpaque(false);
+        SwingHelper.flattenJSplitPane(instanceSplitPane);
+
         splitPane.setDividerLocation(200);
         splitPane.setDividerSize(4);
         splitPane.setOpaque(false);
@@ -167,6 +192,139 @@ public class LauncherFrame extends JFrame {
                 popupInstanceMenu(e.getComponent(), e.getX(), e.getY(), selected);
             }
         });
+
+        checkAndValidateJavaVersionAndSettings();
+        tableSortFilter();
+
+    }
+
+    private void tableSortFilter() {
+        instanceSorter = new TableRowSorter<TableModel>(instancesTable.getModel());
+        instancesTable.setRowSorter(instanceSorter);
+
+        searchBox.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                String text = searchBox.getText();
+
+                if (text.trim().length() == 0 || text.equals(SharedLocale.tr("launcher.search"))) {
+                    instanceSorter.setRowFilter(null);
+                } else {
+                    instanceSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                String text = searchBox.getText();
+
+                if (text.trim().length() == 0 || text.equals(SharedLocale.tr("launcher.search"))) {
+                    instanceSorter.setRowFilter(null);
+                } else {
+                    instanceSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                throw new UnsupportedOperationException("Not supported.");
+            }
+        });
+    }
+
+    /*
+    * Compares the java runtime bit version with the operation's bit version and warns in case of mismatch about performance impact. Additionally warns about too high ram settings in relation with 32 bit.
+    * If the operation system is a mac further steps are being taken in order to dodge the systems default java version which is outdated (1.6).
+    */
+
+    protected void checkAndValidateJavaVersionAndSettings() {
+
+        boolean customJvmPath = false;
+
+        if (!Strings.isNullOrEmpty(launcher.getConfig().getJvmPath())) {
+            customJvmPath = true;
+        }
+
+        if (!customJvmPath && Environment.getInstance().getPlatform() == Platform.MAC_OS_X) {
+            File customJava = new File("/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java");
+            if (customJava.exists() && customJava.canExecute()) {
+                launcher.getConfig().setJvmPath("/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home");
+                customJvmPath = true;
+                log.log(Level.INFO, "Mac and custom java detected, setting corresponding jvm path.");
+            }
+        }
+
+        if (!customJvmPath && Environment.getRuntimeJavaVersionMajor() < 1.7) {
+            // Custom button text
+            Object[] options = {"Yes, please", "No, thanks"};
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running an old version of Java which is no longer supported by all mod-packs.\nWe highly recommend to install Java 1.7 or 1.8.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/java");
+                    openWebpage(url);
+                    System.exit(0);
+                }
+            } catch (MalformedURLException e1) {
+                log.log(Level.SEVERE, "Malformed URL has occurred!", e1);
+            }
+        }
+
+        Integer maxMem = launcher.getConfig().getMaxMemory();
+        Integer permGen = launcher.getConfig().getPermGen();
+
+        if (Environment.getInstance().getJavaBits().equals("32") && Environment.getInstance().getArchBits().equals("64")) {
+            // Custom button text
+            Object[] options = { "Yes, please", "No, thanks" };
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running Java 32bit on a 64 bit System.\nWe highly recommend to install/update Java 64bit for better performance.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/java");
+                    openWebpage(url);
+                    System.exit(0);
+                }
+            } catch (MalformedURLException e1) {
+                log.log(Level.SEVERE, "Malformed URL has occurred!", e1);
+            }
+        }
+        else if (Environment.getInstance().getArchBits().equals("32") && (maxMem > 1244 || permGen > 128)) {
+            // Custom button text
+            Object[] options = { "Yes, show me how", "No, thanks" };
+
+            int n = JOptionPane
+                    .showOptionDialog(
+                            this,
+                            "We detected that you are running a 32 Bit System.\nIn order to use the launcher properly you need to change some settings.",
+                            "WARNING", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, // no custom Icon
+                            options, // the titles of buttons
+                            options[0]); // default button title);
+
+            try {
+                if (n == 0) {
+                    URL url = new URL("http://mym.li/32bit");
+                    openWebpage(url);
+                }
+            } catch (MalformedURLException e1) {
+                log.log(Level.SEVERE, "Malformed URL has occurred!", e1);
+            }
+        }
+
+        log.log(Level.INFO, "JAVA VERSION: " + System.getProperty("sun.arch.data.model") + "Bit");
     }
 
     protected JPanel createContainerPanel() {
@@ -194,8 +352,20 @@ public class LauncherFrame extends JFrame {
         JPopupMenu popup = new JPopupMenu();
         JMenuItem menuItem;
 
+        final ImageIcon installIcon;
+        final ImageIcon launchIcon;
+        final ImageIcon openFolderIcon;
+        final ImageIcon openResourcePacksIcon;
+        final ImageIcon openScreenshotsIcon;
+        final ImageIcon deleteFilesIcon;
+        final ImageIcon hardForceUpdateIcon;
+        final ImageIcon forceUpdateIcon;
+
         if (selected != null) {
-            menuItem = new JMenuItem(!selected.isLocal() ? "Install" : "Launch");
+            installIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "installIcon.png"));
+            launchIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "launchIcon.png"));
+
+            menuItem = new JMenuItem(!selected.isLocal() ? "Install" : "Launch", !selected.isLocal() ? installIcon : launchIcon);
             menuItem.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -207,26 +377,35 @@ public class LauncherFrame extends JFrame {
             if (selected.isLocal()) {
                 popup.addSeparator();
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.openFolder"));
+                openFolderIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "openFolderIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.openFolder"), openFolderIcon);
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, selected.getContentDir(), true));
                 popup.add(menuItem);
 
+                /**
                 menuItem = new JMenuItem(SharedLocale.tr("instance.openSaves"));
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, new File(selected.getContentDir(), "saves"), true));
                 popup.add(menuItem);
+                 **/
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.openResourcePacks"));
+                openResourcePacksIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "openResourcePacksIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.openResourcePacks"), openResourcePacksIcon);
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, new File(selected.getContentDir(), "resourcepacks"), true));
                 popup.add(menuItem);
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.openScreenshots"));
+                openScreenshotsIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "openScreenshotsIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.openScreenshots"), openScreenshotsIcon);
                 menuItem.addActionListener(ActionListeners.browseDir(
                         LauncherFrame.this, new File(selected.getContentDir(), "screenshots"), true));
                 popup.add(menuItem);
 
+                /**
                 menuItem = new JMenuItem(SharedLocale.tr("instance.copyAsPath"));
                 menuItem.addActionListener(new ActionListener() {
                     @Override
@@ -237,11 +416,14 @@ public class LauncherFrame extends JFrame {
                     }
                 });
                 popup.add(menuItem);
+                 **/
 
                 popup.addSeparator();
 
+                forceUpdateIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "forceUpdateIcon.png"));
+
                 if (!selected.isUpdatePending()) {
-                    menuItem = new JMenuItem(SharedLocale.tr("instance.forceUpdate"));
+                    menuItem = new JMenuItem(SharedLocale.tr("instance.forceUpdate"), forceUpdateIcon);
                     menuItem.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -253,7 +435,9 @@ public class LauncherFrame extends JFrame {
                     popup.add(menuItem);
                 }
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.hardForceUpdate"));
+                hardForceUpdateIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "hardForceUpdateIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.hardForceUpdate"), hardForceUpdateIcon);
                 menuItem.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -262,7 +446,9 @@ public class LauncherFrame extends JFrame {
                 });
                 popup.add(menuItem);
 
-                menuItem = new JMenuItem(SharedLocale.tr("instance.deleteFiles"));
+                deleteFilesIcon = new ImageIcon(SwingHelper.readIconImage(Launcher.class, "deleteFilesIcon.png"));
+
+                menuItem = new JMenuItem(SharedLocale.tr("instance.deleteFiles"), deleteFilesIcon);
                 menuItem.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -272,9 +458,10 @@ public class LauncherFrame extends JFrame {
                 popup.add(menuItem);
             }
 
-            popup.addSeparator();
+            //popup.addSeparator();
         }
 
+        /**
         menuItem = new JMenuItem(SharedLocale.tr("launcher.refreshList"));
         menuItem.addActionListener(new ActionListener() {
             @Override
@@ -283,9 +470,30 @@ public class LauncherFrame extends JFrame {
             }
         });
         popup.add(menuItem);
+         **/
 
         popup.show(component, x, y);
 
+    }
+
+
+    public void openWebpage(URI uri) {
+        Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+        if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+            try {
+                desktop.browse(uri);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void openWebpage(URL url) {
+        try {
+            openWebpage(url.toURI());
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
     }
 
     private void confirmDelete(Instance instance) {
@@ -347,7 +555,7 @@ public class LauncherFrame extends JFrame {
 
     private void launch() {
         boolean permitUpdate = updateCheck.isSelected();
-        Instance instance = launcher.getInstances().get(instancesTable.getSelectedRow());
+        Instance instance = launcher.getInstances().get(instancesTable.convertRowIndexToModel(instancesTable.getSelectedRow()));
 
         launcher.getLaunchSupervisor().launch(this, instance, permitUpdate, new LaunchListenerImpl(this));
     }
@@ -382,5 +590,4 @@ public class LauncherFrame extends JFrame {
             launcher.showLauncherWindow();
         }
     }
-
 }
